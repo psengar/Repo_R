@@ -1,0 +1,26 @@
+---
+title: "First Markdown"
+output: html_document
+---
+
+```{r}
+library(datasets)
+data(airquality)
+summary(airquality)
+```
+```{r}
+pairs(airquality)
+```
+```{r}
+fit<-lm(Ozone~Solar.R+Wind+Temp,data = airquality)
+summary(fit)
+```
+* Item 1
+* item 2
+
+
+1. Item 1
+2. Item 2
+
+
+
