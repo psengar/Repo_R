@@ -1,0 +1,38 @@
+---
+title: "simulation project"
+output: pdf_document
+---
+set.seed(123)
+library(manipulate)
+library(ggplot2)
+
+generate_table<-function(N){
+          BWT<-runif(N,min=(351),max=(3251))  # Birth weight in gms
+          AS<- sample(c(2,8,10),N,replace=T,prob=c(.65,.25,.10))  #Apgar score
+          AMT<-sample(2:5,N,replace=T)#Abnormal muscletone, scale 4 & 5 for increased flexortone
+          DC<- sample(c("<1",">1"),N,replace=T,prob=c(.35,.65))   # Diminished crying 
+          HB<-sample(c("<=14",">14"),N,replace = T,prob=c(.55,.45))   # Haemoglobin
+          SB <- sample(c("10-14","15-20"),N,replace=T,prob=c(.36,.64))  # Serum bilirubin
+          #HC<- rnorm(N,mean=38,sd=2)#head circumferance 
+          HC<-sample(c(35,36,38,40),N,replace=T,prob=c(.45,.35,.10,.5))
+          GP<- sample(c("<=36",">=37"),N,replace=T)   # gestation period
+          MA<-round(runif(N,min=20,max=40))       # Mother age
+          simulate_CP <- function(age, VitaminC){
+                logistic <- function(t) 1 / (1 + exp(-t))
+                score <- 0.73 +  2^(-1.2)*(AS-8) - 2^(-1.2)*log(HC) 
+                
+                prob <- logistic(score)
+
+                result <- ifelse(runif(length(prob)) < prob, "N", "Y")
+        } 
+          CP<- simulate_CP(AS,HC)
+          df = data.frame(BWT,AS,AMT,DC,HB,SB,HC,GP,MA,CP)
+}
+                
+data_frame<-generate_table(4e4)
+sum(data_frame$CP=="Y")
+
+ggplot(data_frame,aes(x=AS,fill=CP))+xlab("Apgar Score")+ggtitle("Cerebral Palsy by Apgar Score")+geom_density(alpha=.3)
+ggplot(data_frame,aes(x=HC,fill=CP))+xlab("Head Circumferance")+ggtitle("Cerebral Palsy by Head Circumferance")+geom_density(alpha=.3)
+
+  `
