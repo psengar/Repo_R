@@ -1,0 +1,100 @@
+---
+title: "simulation project"
+output: html_document
+---
+# Title: Neonatal Signs as Predictors of Cerebral Palsy.
+This simulated study is based on predicting Cerebral Palsy (CP) in neonates from neurological examination.Study was done on 40,000 neonates and it was found that Head Circumference and Apgar score were important features to predict CP in early childhood. Neonates with Apgar Score less than 3 and Head Circumference less or more than 38cms are considered as strong predictors. 
+
+
+```{r}
+library(manipulate)
+library(ggplot2)
+```
+Dataset is generated with Apgar Score and Head circumference as significant features. Abnormal Muscle tone is also a contributing feature in predicting CP. Scale of 4 and 5 for Abnormal Muscle Tone are sign of increased flexor tone that adds to prediction. To add noise to data some features such as Mothers Age, Haemoglobin, Serum Bilirubin  and Dimisished Crying of neonates are added.
+
+```{R}
+generate_table<-function(N){
+          BWT<-runif(N,min=(351),max=(3251))  # Birth weight in gms
+          AS<- sample(c(2,8,10),N,replace=T,prob=c(.65,.25,.10))  #Apgar score
+          AMT<-sample(c(2,3,4,5),N,replace=T,prob=c(.10,.25,.45,.15))  #Abnormal muscletone
+          DC<- sample(c("<1",">1"),N,replace=T,prob=c(.35,.65))   # Diminished crying 
+          HB<-sample(c("<=14",">14"),N,replace = T,prob=c(.55,.45))   # Haemoglobin
+          SB <- sample(c("10-14","15-20"),N,replace=T,prob=c(.36,.64))  # Serum bilirubin
+          HC<-sample(c(35,36,38,40),N,replace=T,prob=c(.45,.35,.10,.5))
+          GP<- sample(c("<=36",">=37"),N,replace=T)   # gestation period
+          MA<-round(runif(N,min=20,max=40))  # Mother age
+
+          simulate_CP <- function(AS, HC){
+                logistic <- function(t) 1 / (1 + exp(-t))
+                score <- 0.73 +  2^(-1.2)*(AS-8) - 2^(-1.2)*log(HC) 
+                
+                prob <- logistic(score)
+
+                result <- ifelse(runif(length(prob)) < prob, "N", "Y")
+        } 
+          CP<- simulate_CP(AS,HC)
+          df = data.frame(BWT,AS,AMT,DC,HB,SB,HC,GP,MA,CP)
+}
+```
+```{R}
+data_frame<-generate_table(4e4)
+```
+
+#Data Visualization
+Density plots and interleaved histograms are developed for Apgar Score, Head Circumference and Abnormal Muscle Tone. Distribution is observed for cases with and without CP. Plots clearly show that for the positive cases density is higher for low Apgar Score, lower Head Circumference. Also, density is higher for 4 and 5 grade of Abnormal Muscle Tone.
+```{R}
+ggplot(data_frame,aes(x=AS,fill=CP))+xlab("Apgar Score")+ggtitle("Density plot for CP by Apgar Score")+geom_density(alpha=.3)
+```
+```{R}
+ggplot(data_frame,aes(x=HC,fill=CP))+xlab("Head Circumference")+ggtitle("Density plot for CP by Head Circumference")+geom_density(alpha=.3)
+```
+```{R}
+ggplot(data_frame,aes(x=AMT,fill=CP))+xlab("Abnormal muscle tone grades")+ggtitle("Density plot for CP by Abnormal muscle tone")+geom_density(alpha=.3)
+```
+```{R}
+ggplot(data=data_frame)+ggtitle("Histogram of abnormal muscle tone for CP")+ geom_histogram(aes(x=AMT, fill=CP),binwidth=1,position="dodge")
+```
+```{R}
+ggplot(data=data_frame)+ggtitle("Histogram of Head circumference for CP")+ geom_histogram(aes(x=HC, fill=CP),binwidth=1,position="dodge")
+```
+```{R}
+ggplot(data=data_frame)+ ggtitle("Histogram of Apgar score for CP")+geom_histogram(aes(x=AS, fill=CP),binwidth=1,position="dodge")
+```
+
+# Correlations 
+Apgar Score and Head circumference are checked for correlations. A small positive relationship is seen.when Apgar Score is towards higher scale Head Circumference also increases and vice versa. Good Apgar Score is seen in healthy neonates with Head Circumference towards normal range. Birth Weight shows a very small positve relation with Abnormal Muscle tone. Neonates with lower birth weight have more probability of Abnormal Muscle tone.
+
+```{R}
+cor(data_frame$AS,data_frame$HC)
+cor(data_frame$BWT,data_frame$AMT)
+```
+
+##Fitting Generalized Linear Models
+Two models were fitted to predict outcome variable Cerebral Palsy. For the model with only predictors Head Circumference and Apgar Score, R squared significantly improved to 1.
+
+```{R}
+logisticPseudoR2s <- function(LogModel) {
+  dev <- LogModel$deviance 
+  nullDev <- LogModel$null.deviance 
+  modelN <-  length(LogModel$fitted.values)
+  R.l <-  1 -  dev / nullDev
+  R.cs <- 1- exp ( -(nullDev - dev) / modelN)
+  R.n <- R.cs / ( 1 - ( exp (-(nullDev / modelN))))
+  cat("Pseudo R^2 for logistic regression\n")
+  cat("Hosmer and Lemeshow R^2  ", round(R.l, 3), "\n")
+  cat("Cox and Snell R^2        ", round(R.cs, 3), "\n")
+  cat("Nagelkerke R^2           ", round(R.n, 3),    "\n")
+}
+```
+```{R}
+fit1<- glm(CP~.,data=data_frame,family="binomial")
+summary(fit1)
+logisticPseudoR2s(fit1)
+```
+```{R}
+fit2<- glm(CP~AS,HC,data=data_frame,family="binomial")
+summary(fit2)
+logisticPseudoR2s(fit2)
+```
+
+
